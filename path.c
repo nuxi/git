@@ -751,8 +751,12 @@ char *interpolate_path(const char *path, int real_home)
 		size_t username_len = first_slash - username;
 		if (username_len == 0) {
 			const char *home = getenv("HOME");
-			if (!home)
-				goto return_null;
+			if (!home) {
+				struct passwd *pw = getpwuid(getuid());
+				if (!pw || !pw->pw_dir)
+					goto return_null;
+				home = pw->pw_dir;
+			}
 			if (real_home)
 				strbuf_add_real_path(&user_path, home);
 			else

@@ -906,20 +906,25 @@ test_expect_success HOMEVAR 'get --path' '
 	test_cmp expect result
 '
 
-cat >expect <<\EOF
+# getent appears to be broken on OSX
+if test_have_prereq !MINGW && test -n "$(getent passwd "$(id -u)")"
+then
+	test_set_prereq GETENT
+fi
+
+getent passwd "$(id -u)" | cut -d: -f6 |  sed -e 's;/*$;/;' >expect
+cat >>expect <<EOF
 /dev/null
 foo~
 EOF
 
-test_expect_success !MINGW 'get --path copes with unset $HOME' '
+test_expect_success GETENT 'get --path copes with unset $HOME' '
 	(
 		sane_unset HOME &&
-		test_must_fail git config --get --path path.home \
-			>result 2>msg &&
+		git config --get --path path.home >result &&
 		git config --get --path path.normal >>result &&
 		git config --get --path path.trailingtilde >>result
 	) &&
-	test_i18ngrep "[Ff]ailed to expand.*~/" msg &&
 	test_cmp expect result
 '
 
